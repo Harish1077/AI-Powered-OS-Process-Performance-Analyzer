@@ -1,0 +1,117 @@
+A. Environment Setup
+1. Kali Linux Preparation bash
+#Update system and install Python 3.11
+sudo apt update && sudo apt install -y python3.11 python3.11-dev
+python3.11-venv
+# Create virtual environment
+python3.11 -m venv ~/ai_analyzer --system-site-packages
+source ~/ai_analyzer/bin/activate
+2. Dependency Installation
+bash
+pip install --break-system-packages \
+psutil==5.9.5 \
+pandas==2.1.1 \
+scikit-learn==1.3.0 \
+
+
+B. Core Modules
+1. Main Analyzer (analyzer.py)
+python
+#!/usr/bin/env python3
+import psutil, time, pandas as pd
+from sklearn.ensemble import IsolationForest
+from prophet import Prophet
+from datetime import datetime
+class ProcessAnalyzer:
+def __init__(self):
+self.model = IsolationForest(n_estimators=100, contamination=0.05)
+self.forecaster = Prophet()
+self.history = pd.DataFrame(columns=[
+'timestamp', 'pid', 'name', 'cpu', 'memory', 'io_read', 'io_write'
+])
+def scan(self, duration=30, interval=1):
+"""Collect process metrics"""
+print(f"Scanning {duration} seconds...")
+for _ in range(duration):
+for proc in psutil.process_iter(['pid', 'name', 'cpu_percent',
+'memory_percent', 'io_counters']):
+try:
+io = proc.info['io_counters']
+self.history.loc[len(self.history)] = {
+'timestamp': datetime.now(),
+'pid': proc.info['pid'],
+'name': proc.info['name'],
+'cpu': proc.info['cpu_percent'],
+'memory': proc.info['memory_percent'],
+'io_read': io.read_bytes if io else 0,
+'io_write': io.write_bytes if io else 0
+}
+except (psutil.NoSuchProcess, psutil.AccessDenied):
+continue
+time.sleep(interval)
+def detect_issues(self):
+"""Identify anomalies using Isolation Forest"""
+features = self.history[['cpu', 'memory', 'io_read', 'io_write']]
+self.history['anomaly'] = self.model.fit_predict(features)
+return self.history[self.history['anomaly'] == -1]
+def forecast(self, metric='cpu', hours=1):
+"""Predict future resource usage"""
+df =
+self.history.set_index('timestamp').resample('1T')[metric].mean().reset_inde
+x()
+df.columns = ['ds', 'y']
+self.forecaster.fit(df)
+future = self.forecaster.make_future_dataframe(periods=hours*60,
+freq='T')
+return self.forecaster.predict(future)
+if __name__ == "__main__":
+analyzer = ProcessAnalyzer()
+analyzer.scan(duration=10) # Shorter scan for demo
+print("\n=== Anomalies Detected ===")
+print(analyzer.detect_issues()[['pid', 'name', 'cpu',
+'memory']].to_markdown())
+print("\n=== CPU Forecast ===")
+print(analyzer.forecast(metric='cpu', hours=0.5)[['ds', 'yhat']].tail())
+
+
+
+C. Security Add-On (security.py)
+python
+THREAT_PATTERNS = ['meterpreter', 'beacon', 'payload', 'c2']
+def check_threats(process_name, cmdline):
+"""Kali-specific threat detection"""
+return any(
+p in process_name.lower() or
+p in ' '.join(cmdline).lower()
+for p in THREAT_PATTERNS
+)
+def kill_process(pid):
+"""Secure process termination"""
+import os, signal
+os.kill(pid, signal.SIGKILL)
+
+
+D. Systemd Service (ai-analyzer.service)
+ini
+[Unit]
+Description=AI Performance Monitor
+After=network.target
+[Service]
+User=root
+ExecStart=/home/kali/ai_analyzer/bin/python /path/to/analyzer.py
+Restart=always
+Environment="PYTHONUNBUFFERED=1"
+[Install]
+WantedBy=multi-user.target
+
+
+
+. Sample Outputs
+A. Anomaly Detection
+markdown
+| PID | Name | CPU% | Memory% |
+|------|------------|------|---------|
+| 7891 | python3 | 98 | 45 |
+| 3456 | chromium | 85 | 3200MB |
+B. Threat Detection
+[!] SECURITY ALERT: PID 666 (python3

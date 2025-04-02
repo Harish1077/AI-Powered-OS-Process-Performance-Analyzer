@@ -1,11 +1,14 @@
 A. Environment Setup
+
 1. Kali Linux Preparation bash
 #Update system and install Python 3.11
 sudo apt update && sudo apt install -y python3.11 python3.11-dev
 python3.11-venv
+
 # Create virtual environment
 python3.11 -m venv ~/ai_analyzer --system-site-packages
 source ~/ai_analyzer/bin/activate
+
 2. Dependency Installation
 bash
 pip install --break-system-packages \
@@ -15,8 +18,11 @@ scikit-learn==1.3.0 \
 
 
 B. Core Modules
+
 1. Main Analyzer (analyzer.py)
+
 python
+
 #!/usr/bin/env python3
 import psutil, time, pandas as pd
 from sklearn.ensemble import IsolationForest
@@ -76,7 +82,9 @@ print(analyzer.forecast(metric='cpu', hours=0.5)[['ds', 'yhat']].tail())
 
 
 C. Security Add-On (security.py)
+
 python
+
 THREAT_PATTERNS = ['meterpreter', 'beacon', 'payload', 'c2']
 def check_threats(process_name, cmdline):
 """Kali-specific threat detection"""
@@ -92,6 +100,7 @@ os.kill(pid, signal.SIGKILL)
 
 
 D. Systemd Service (ai-analyzer.service)
+
 ini
 [Unit]
 Description=AI Performance Monitor
